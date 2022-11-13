@@ -1,5 +1,7 @@
 from multipart_partitions import *
 import numpy as np
+from tqdm import tqdm
+import pprint
 
 def eval_para(case: list) -> object:
     """
@@ -21,37 +23,35 @@ def eval_para(case: list) -> object:
     return simplify(simpara)
 
 
-
-
 def analytical_multi_part(b_v_, b_s_, c_v_, c_s_):
-    for case in cases:
-        print("=====================================")
-        print(case['b_s'])
-        lower_b_s_bound, upper_b_s_bound = case['b_s']
-        print(lower_b_s_bound, upper_b_s_bound)
-        for b_v_bound in case['b_vs']:
-            lower_b_v_bound, upper_b_v_bound = b_v_bound['b_v']
-            print(lower_b_v_bound, upper_b_v_bound)
-            print(type(lower_b_v_bound), type(upper_b_v_bound))
-            print(lower_b_s_bound < b_s_ <= upper_b_s_bound)
-            lower_b_v_bound = lower_b_v_bound if isinstance(lower_b_v_bound, int) else lower_b_v_bound.subs([(b_s, b_s_)])
-            upper_b_v_bound = upper_b_v_bound if isinstance(upper_b_v_bound, int) else upper_b_v_bound.subs([(b_s, b_s_)])
-            print("Ráázzz", lower_b_v_bound.subs([(b_s, b_s_)]) < b_v_ <= upper_b_v_bound.subs([(b_s, b_s_)]))
+    for case in expressions:
+        lower_b_v_bound, upper_b_v_bound = case['b_v']
+        for b_s_bound in case['b_ss']:
+            lower_b_s_bound, upper_b_s_bound = b_s_bound['b_s']
+            lower_b_s_bound = lower_b_s_bound if lower_b_s_bound == 0 else lower_b_s_bound.subs([(b_v, b_v_)])
+            upper_b_s_bound = upper_b_s_bound.subs([(b_v, b_v_)])
             if lower_b_s_bound < b_s_ <= upper_b_s_bound and lower_b_v_bound < b_v_ <= upper_b_v_bound:
-                expression = eval_para(b_v_bound['areas'])
-                print(expression)
+                expression = b_s_bound['areas']
                 evaluation = expression.evalf(subs={'b_s': b_s_, 'b_v': b_v_, 'c_v': c_v_, 'c_s': c_s_})
-                print(evaluation)
+                return evaluation
+
+
+def rewrite_multipart():
+    for case in tqdm(cases):
+        for b_s_bound in case['b_ss']:
+            b_s_bound['areas'] = eval_para(b_s_bound['areas'])
+    pprint.pprint(cases)
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     expression = eval_para(Case1a)
-    print(expression)
-    print(expression.evalf(subs={'b_s': 0.1, 'b_v': 0.1, 'c_v': 0.5, 'c_s': 0.2}))
-    for x in np.arange(0, 1, 0.01):
-        for y in np.arange(0, 1, 0.01):
-            analytical_multi_part(x, y, 0.5, 0.2)
+    # print(expression)
+    # print(expression.evalf(subs={'b_s': 0.1, 'b_v': 0.1, 'c_v': 0.5, 'c_s': 0.2}))
+    delta = 0.01
+    for xx in tqdm(np.arange(0, 1, delta)):
+        for yy in np.arange(0, 1, delta):
+            analytical_multi_part(xx, yy, 0.5, 0.2)
     """d_b_s = diff(output, b_s)
     d_b_v = diff(output, b_v)
     d_b_s_s = diff(diff(output, b_s), b_s)
