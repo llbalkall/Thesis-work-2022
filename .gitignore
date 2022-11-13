@@ -1,2 +1,7 @@
 
 .idea/vcs.xml
+*.pyc
+*.pyc
+*.pyc
+__pycache__/multipart_partitions.cpython-37.pyc
+*.pyc

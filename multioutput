@@ -1,0 +1,1 @@
+-b_s**3/12 - b_s**2*b_v/2 + b_s**2*c_s/8 + b_s**2*c_v/4 - b_s*b_v**2/2 + b_s*b_v*c_s/2 + b_s*b_v*c_v/2 + b_v**2*c_s/4 - b_v**2/2 + b_v*c_v - c_s - 2*c_v + 1
