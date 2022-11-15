@@ -10,6 +10,8 @@ from multipart_partitions import *
 import gc
 from time import time
 
+from main import analytical_multi_part
+
 class Validator:
     def __init__(self, base_c_v=0.2, base_c_s=0.5, profit_func=profit_simple_bidding,
                  distribution=uniform_distribution):
@@ -164,18 +166,21 @@ def random_stepwise():
 
 
 def show_multipart(distribution=uniform_distribution):
-    bs, xs, ys, b_v, b_s, delta = [], [], [], 0, 0, 0.01
-
+    b_surface, xs, ys, bv, bs, delta = [], [], [], 0, 0, 0.005
     mean_err = []
 
-    for b_v in tqdm(np.arange(0, 1, delta)):
-        while b_s < 2 - 2 * b_v:
-            bs_to_append = evaluate_b((b_s, b_v), distribution=distribution, profit_func=profit_multipart_bidding)
-            # bs.append(bs_to_append)
-            ys.append(b_s)
-            xs.append(b_v)
-            b_s += delta
-            if b_v < 0.25 and 0 <= b_s <= 0.25 -  b_v:
+    for bv in tqdm(np.arange(0, 1, delta)):
+        while bs < 2 - 2 * bv:
+            bs_to_append = None
+            if bv < 0.25 and 0.25 - bs < bv < 0.5-2*bs:
+                simu_b = evaluate_b((bs, bv), distribution=distribution, profit_func=profit_multipart_bidding)
+                analytical_b = analytical_multi_part(bv, bs, 0.2, 0.5)
+                b_surface.append(abs(simu_b - analytical_b))
+                ys.append(bs)
+                xs.append(bv)
+            bs += delta
+            """
+            if b_v < 0.25 and 0 <= b_s <= 0.25 - b_v:
                 # 1.75 − 2bv ≤ bs ≤ 2 − 2bv
                 a = bs_to_append
                 b = case1a(b_s, b_v)
@@ -184,14 +189,14 @@ def show_multipart(distribution=uniform_distribution):
                 mean_err.append(err)
                 bs.append(b)
             else:
-                bs.append(bs_to_append)
-        b_s = 0
+                bs.append(bs_to_append)"""
+        bs = 0
         # print_progress_bar(b_v, delta, 1)
 
-    print("Atlagerr", sum(mean_err) / len(mean_err))
-    print("max value: ", max(bs), "b_s: ", ys[bs.index(max(bs))], "b_v: ", xs[bs.index(max(bs))])
+    # print("Atlagerr", sum(mean_err) / len(mean_err))
+    print("max value: ", max(b_surface), "b_s: ", ys[b_surface.index(max(b_surface))], "b_v: ", xs[b_surface.index(max(b_surface))])
     ax = plt.axes(projection='3d')
-    ax.scatter3D(xs, ys, bs, c=bs, cmap='Greens')
+    ax.scatter3D(xs, ys, b_surface, c=b_surface, cmap=plt.get_cmap('hsv'))
     ax.set_xlabel('b_v')
     ax.set_ylabel('b_s')
     ax.set_zlabel('E[π_multipart]')
