@@ -1,11 +1,16 @@
+import math
+from utilities import *
 from analytical_results import *
 
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 from random import random
+from multipart_partitions import *
+import gc
+from time import time
 from profit_functions import *
-from distributions import *
+from main import analytical_multi_part
 
 """
 everything is stepwise:
@@ -13,21 +18,31 @@ everything is stepwise:
 Simple:
     -profit_simple(p1, p2, b, cs, cv)
     -expected_profit_simple(b, cs, cv)
-    -expected_profit_analytical_simple(b, cs, cv)
+    expected_profit_analytical_simple(b, cs, cv)
     optimal_bid_simple(cs, cv)
 
 Block
     -profit_block(p1, p2, b, cs, cv)
     -expected_profit_block(b, cs, cv)
-    -expected_profit_analytical_block(b, cs, cv)
+    expected_profit_analytical_block(b, cs, cv)
     optimal_bid_block(cs, cv)
 
 Multi-part
     -profit_multipart(p1, p2, bs, bv, cs, cv)
     -expected_profit_multipart(bs, bv, cs, cv)
-    -expected_profit_analytical_multipart(bs, bv, cs, cv)               not validated
-    optimal_bid_multipart(cs, cv)                                       not even calculated
+    expected_profit_analytical_multipart(bs, bv, cs, cv)
+    optimal_bid_multipart(cs, cv)
 """
+
+
+def uniform_distribution(p1, p2):
+    return 1
+
+
+def stepwise_distribution(p1, p2):
+    m1 = 0.5 if p1 <= 0.25 or p1 >= 0.75 else 1.5
+    m2 = 0.5 if p2 <= 0.25 or p2 >= 0.75 else 1.5
+    return m1 * m2
 
 
 def expected_profit(b, cv, cs, distribution, profit_func, delta=0.01):
@@ -47,16 +62,14 @@ def expected_profit(b, cv, cs, distribution, profit_func, delta=0.01):
     return summa / point_number
 
 
-
-
 def eval_b(b=0.4, randi=random, db=10000):
     """
         only using block bidding, random uniform/stepwise
     """
     summa = 0
-    for i_ in range(db):
+    for i in range(db):
         summa += profit_block(randi(), randi(), b)
-    return summa / i_
+    return summa / i
 
 
 def random_stepwise():
@@ -75,8 +88,8 @@ def show_multipart(distribution=uniform_distribution):
         while bs < 2 - 2 * bv:
             bs_to_append = None
             if bv < 0.25 and 0.25 - bs < bv < 0.5-2*bs:
-                simu_b = expected_profit((bs, bv), distribution=distribution, profit_func=profit_multipart)
-                analytical_b = analytical_expected_profit_multi_part(bv, bs, 0.2, 0.5)
+                simu_b = expected_profit((bs, bv), cv=0.2, cs=0.5, distribution=distribution, profit_func=profit_multipart)
+                analytical_b = analytical_multi_part(bv, bs, 0.2, 0.5)
                 b_surface.append(abs(simu_b - analytical_b))
                 ys.append(bs)
                 xs.append(bv)
@@ -225,32 +238,9 @@ for vs in cscv:
     show(c_v=vs[0], c_s=vs[1])"""
 
 # show_multipart(uniform_distribution)
-# show_multipart(stepwise_distribution)
+show_multipart(stepwise_distribution)
 
 """
     0.0004
     0.0008
 """
-
-
-test_p1, test_p2 = 0.1, 0.1
-test_b, test_bb, test_bv, test_bs = 0.1, 0.1, 0.1, 0.1
-test_cs, test_cv = 0.5, 0.2
-
-
-profit_simple(test_p1, test_p2, test_b, test_cs, test_cv)
-expected_profit(test_b, test_cs, test_cv, stepwise_distribution, profit_simple)
-analytical_expected_profit_simple(test_b, test_cs, test_cv)
-# optimal_bid_simple(test_cs, test_cv)
-
-profit_block(test_p1, test_p2, test_bb, test_cs, test_cv)
-expected_profit(test_bb, test_cs, test_cv, stepwise_distribution, profit_block)
-analytical_expected_profit_block(test_bb, test_cs, test_cv)
-# optimal_bid_block(test_cs, test_cv)
-
-profit_multipart(test_p1, test_p2, (test_bs, test_bv), test_cs, test_cv)
-expected_profit((test_bs, test_bv), test_cs, test_cv, stepwise_distribution, profit_multipart)
-analytical_expected_profit_multi_part(test_bs, test_bv, test_cs, test_cv)
-# optimal_bid_multipart(test_cs, test_cv)
-
-
