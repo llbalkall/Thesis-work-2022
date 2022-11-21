@@ -6,7 +6,9 @@ from tqdm import tqdm
 from random import random
 from profit_functions import *
 from distributions import *
-
+from expected_profit import *
+from optimal_bids import *
+from constants import *
 """
 everything is stepwise:
 
@@ -30,41 +32,9 @@ Multi-part
 """
 
 
-def expected_profit(b, cv, cs, distribution, profit_func, delta=0.01):
-    """
-        Can use simple/block/multipart with uniform/stepwise
-    """
-    summa = 0
-    point_number = 0
-    p1 = delta / 2
-    while p1 < 1:
-        p2 = delta / 2
-        while p2 < 1:
-            summa += distribution(p1, p2) * profit_func(p1, p2, b, cv, cs)
-            p2 += delta
-            point_number += 1
-        p1 += delta
-    return summa / point_number
-
-
-
-
-def eval_b(b=0.4, randi=random, db=10000):
-    """
-        only using block bidding, random uniform/stepwise
-    """
-    summa = 0
-    for i_ in range(db):
-        summa += profit_block(randi(), randi(), b)
-    return summa / i_
-
-
 def random_stepwise():
-    """
-    Random number between 0 and 1 and with a stepwise distribution
-    """
-    a = random()
-    return (a * 2) if a <= 0.5 else (a - 0.25)
+    number = random()
+    return number * 2 if number < 0.5 else number - 0.25
 
 
 def show_multipart(distribution=uniform_distribution):
@@ -113,7 +83,7 @@ def show(profit_func=profit_simple, distribution=stepwise_distribution, c_v=0.2,
         bss.append(expected_profit(b, profit_func=profit_func, distribution=stepwise_distribution, cv=c_v, cs=c_s))
         xs.append(b)
         b += delta
-        print_progress_bar(b, delta, 1)
+        # print_progress_bar(b, delta, 1)
     # plt.plot(xs, bs, color='r', label='uniform distribution')
     plt.plot(xs, bss, color='r')  # , color='g', label='step-wise distribution'
     # print("max value: ", max(bs), "b: ", xs[bs.index(max(bs))])
@@ -159,7 +129,7 @@ def show_error(delta, func, name="error", start_b=0, max_b=1):
 def show_random_vs_homo(func=analytical_expected_profit_simple, max_b=1):
     bs, b, delta = [], 0, 0.06
     while b < max_b:
-        bs.append(eval_b(b, random_stepwise) - expected_profit(b))
+        bs.append(expected_profit_monte_carlo_block(b, random_stepwise) - expected_profit(b))
         b += delta
         print_progress_bar(b, delta, max_b)
     plt.plot(bs)
@@ -233,24 +203,72 @@ for vs in cscv:
 """
 
 
-test_p1, test_p2 = 0.1, 0.1
-test_b, test_bb, test_bv, test_bs = 0.1, 0.1, 0.1, 0.1
-test_cs, test_cv = 0.5, 0.2
+def validate_expected_profit_simple():
+    analytical_plot, simulation_plot, xs, b, delta = [], [], [], 0, 0.01
+    cv = 0.2
+    cs = 0.5
+    for b in np.arange(0, 1, delta):
+        analytical_plot.append(analytical_expected_profit_simple(b, cv, cs))
+        simulation_plot.append(
+            expected_profit(b, cv, cs, profit_func=profit_simple, distribution=stepwise_distribution))
+        xs.append(b)
+        b += delta
+    plt.plot(xs, simulation_plot, color='r')  # , color='g', label='step-wise distribution'
+    plt.plot(xs, analytical_plot, color='b')
+    # print("max value: ", max(bs), "b: ", xs[bs.index(max(bs))])
+    print("max value: ", max(simulation_plot), "b: ", xs[simulation_plot.index(max(simulation_plot))])
+    plt.legend()
+    plt.ylabel('E[π_block(b)]')
+    plt.xlabel('b')
+    plt.show()
 
 
-profit_simple(test_p1, test_p2, test_b, test_cs, test_cv)
-expected_profit(test_b, test_cs, test_cv, stepwise_distribution, profit_simple)
-analytical_expected_profit_simple(test_b, test_cs, test_cv)
-# optimal_bid_simple(test_cs, test_cv)
+def validate_expected_profit_block():
+    analytical_plot, simulation_plot, xs, b, delta = [], [], [], 0, 0.01
+    monte_carlo_plot = []
+    cv = 0.2
+    cs = 0.5
+    for b in np.arange(0, 2, delta):
+        analytical_plot.append(analytical_expected_profit_block(b, cs=cs, cv=cv))
+        simulation_plot.append(
+            expected_profit(b, cv=cv, cs=cs, profit_func=profit_block, distribution=stepwise_distribution))
+        monte_carlo_plot.append(expected_profit_monte_carlo_block(b, cv=cv, cs=cs))
+        xs.append(b)
+        b += delta
+    plt.plot(xs, simulation_plot, color='r')  # , color='g', label='step-wise distribution'
+    plt.plot(xs, analytical_plot, color='b')
+    plt.plot(xs, monte_carlo_plot)
+    # print("max value: ", max(bs), "b: ", xs[bs.index(max(bs))])
+    print("max value: ", max(simulation_plot), "b: ", xs[simulation_plot.index(max(simulation_plot))])
+    plt.legend()
+    plt.ylabel('E[π_block(b)]')
+    plt.xlabel('b')
+    plt.show()
 
-profit_block(test_p1, test_p2, test_bb, test_cs, test_cv)
-expected_profit(test_bb, test_cs, test_cv, stepwise_distribution, profit_block)
-analytical_expected_profit_block(test_bb, test_cs, test_cv)
-# optimal_bid_block(test_cs, test_cv)
 
-profit_multipart(test_p1, test_p2, (test_bs, test_bv), test_cs, test_cv)
-expected_profit((test_bs, test_bv), test_cs, test_cv, stepwise_distribution, profit_multipart)
-analytical_expected_profit_multi_part(test_bs, test_bv, test_cs, test_cv)
-# optimal_bid_multipart(test_cs, test_cv)
+def validate_optimal_bid_simple():
+    cv = 0.2
+    for cs in np.arange(0, 1, 0.1):
+        print(cs, cv)
+        analytical_optimal_bid = analytical_optimal_bid_simple(cs=cs, cv=cv)
+        simulation_bid = simulation_optimal_bid_simple(cs=cs, cv=cv)
+        print("  ANALYTICAL:", analytical_optimal_bid)
+        print("  SIMULATION:", simulation_bid)
+
+
+def validate_optimal_bid_block():
+    cs_cv_pairs = [
+        (0.5, 0.2),
+        (0.3, 0.1),
+    ]
+    # for cs_cv in cs_cv_pairs:
+    cs = 0.2
+    for cv in np.arange(0, 1, 0.1):
+        print(cs, cv)
+        analytical_optimal_bid = analytical_optimal_bid_block(cs=cs, cv=cv)
+        simulation_bid = simulation_optimal_bid_block(cs=cs, cv=cv)
+        print("  ANALYTICAL:", analytical_optimal_bid)
+        print("  SIMULATION:", simulation_bid)
+
 
 

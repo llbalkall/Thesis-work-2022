@@ -7,10 +7,9 @@ def analytical_expected_profit_simple(b=0.4, cv=0.2, cs=0.5):
     if b < 0.25:
         return (-2 * b ** 2 + b ** 2 * cs + 4 * b * cv - 8 * cv - 4 * cs + 4) / 4
     elif b < 0.75:
-        expression = 192 * b ** 3 - 416 * b ** 2 - 384 * b ** 2 * cv + 192 * b ** 2 * cs + 1072 * b * cv
-        return (expression + 112 * b * cs - 66 * b - 680 * cv - 280 * cs + 283) / 256
+        return (-24*b**2+36*b**2*cs + 48*b*cv - 12*b*cs - 40*cv - 15*cs + 17)/16
     else:
-        return (2 * b ** 2 * cs - 3 * b ** 2 + 2 * b * cs + 6 * b * cv - 4 * cs - 6 * cv + 3) / 8
+        return ( b ** 2 * cs - 2 * b ** 2 + 2 * b * cs + 4 * b * cv - 3 * cs - 4 * cv + 2) / 4
 
 
 def analytical_expected_profit_block(b, cs=0.5, cv=0.2):
